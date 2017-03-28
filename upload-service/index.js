@@ -1,42 +1,44 @@
-const Hapi = require('hapi');
-const mongooseStore = require('./plugins/mongooseStore');
+const express = require('express'); 
+const bodyParser = require('body-parser');
+const multer = require('multer');
 
-const server = new Hapi.Server();
-server.connection({ port: 3000, host: 'localhost' });
+const GFSStorage = require('./storages/gfsStorage');
 
-server.route({
-    method: 'GET',
-    path: '/',
-    handler: function (request, reply) {
-        reply('hello, there');
-    }
+const storageObj = new GFSStorage('mongodb://localhost:27017/dms', 'ctFiles');
+const { storage, gfs, root, getFile } = storageObj;
+
+const app = express(); 
+
+app.use(bodyParser.json());
+
+
+const upload = multer({ //multer settings for single upload
+    storage: storage
+}).single('file');
+
+/** API path that will upload the files */
+app.post('/upload', upload, function(req, res) {
+    const { filename } = req.file;
+    res.json({ filename });
 });
 
-server.route({
-    method: 'POST',
-    path: '/submit',
-    handler: function (request, reply) {
-        const { content } = request.payload;
-        console.log(content);
-        reply();
-    }
+app.get('/file/:filename', function(req, res){
+    const { filename } = req.params;
+    storageObj.getFile(filename)
+        .then(r => {
+            const { file, stream  } = r;
+            res.set('Content-Type', file.contentType)
+            /** return response */
+            return stream.pipe(res);
+        })
+        .catch(error => {
+            if(error.message === '404')
+                return res.status(404);
+            
+            throw error;
+        });
 });
 
-server.register({
-    register: mongooseStore,
-    options: {
-        uri: 'mongodb://localhost:27017/dms'
-    }
-}, err => {
-    if (err) {
-        throw err; // something bad happened loading the plugin
-    }
-
-    server.start((err) => {
-
-        if (err) {
-            throw err;
-        }
-        console.log(`Server running at: ${server.info.uri}`);
-    });
+app.listen('3000', function(){
+    console.log('Server listenning on 3000...');
 });
