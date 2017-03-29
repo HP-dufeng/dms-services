@@ -6,11 +6,7 @@ const File = require('../models/file');
 const { rename } = require('./util');
 
 class SMStorage {
-    constructor() {
-        
-    }
-
-    upload(req, res, next) {
+    upload(req, res) {
         const upload  = multer({ 
             storage: multer.memoryStorage(),
             limits: {
@@ -18,30 +14,35 @@ class SMStorage {
             }
         }).single('file');
 
-        upload(req, res, err => {
-            const { file } = req;
+        const p = new Promise((resolve, reject) => {
+            upload(req, res, err => {
+                if(err) return reject(err);
 
-            const fileModel = new File({ 
-                filename: rename(file.originalname),
-                data: file.buffer,
-                contentType: file.mimetype,
-                length: file.size,
-                uploadDate: new Date(),
-                metadata:{
-                    originalname: file.originalname
-                }
-            });
-            
-            fileModel.save()
-                .then(() => {
-                    req.file.filename = fileModel.filename;
-                    next();
+                const { file } = req;
+
+                const fileModel = new File({ 
+                    filename: rename(file.originalname),
+                    data: file.buffer,
+                    contentType: file.mimetype,
+                    length: file.size,
+                    uploadDate: new Date(),
+                    metadata:{
+                        originalname: file.originalname
+                    }
                 });
+                
+                fileModel.save()
+                    .then(() => {
+                        req.file.filename = fileModel.filename;
+                        resolve();
+                    });
+            });
         });
+
+        return p;
     }
 
-
-    getFile(filename) {
+    download(filename) {
         return File.findOne({ filename });
     }
 }

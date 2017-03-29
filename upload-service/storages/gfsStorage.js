@@ -5,21 +5,10 @@ const Grid = require('gridfs-stream');
 
 const { rename } = require('./util');
 
+const root = "ctFiles";
+
 class GFSStorage {
-    constructor(root) {
-        this.root = root;
-
-        this.storage = this.getStorage();
-        this.gfs = this.storage.gfs;
-
-        this.upload = multer({ //multer settings for single upload
-            storage: this.storage
-        }).single('file');
-    }
-
     getStorage() {
-        const { root } = this;
-
         Grid.mongo = mongoose.mongo;
         const gfs = Grid(mongoose.connection.db);
 
@@ -40,8 +29,28 @@ class GFSStorage {
         return storage;
     }
 
-    getFile(filename) {
-        const { gfs, root } = this;
+    upload(req, res) {
+        this.storage = this.getStorage();
+        this.gfs = this.storage.gfs;
+
+        const upload = multer({ //multer settings for single upload
+            storage: this.storage
+        }).single('file');
+        
+        const p = new Promise((resolve, reject) => {
+            upload(req, res, err => {
+                if(err) return reject(err);
+
+                resolve();
+            });
+        });
+
+        return p;
+        
+    }
+
+    download(filename) {
+        const { gfs } = this;
 
         gfs.collection(root); //set collection name to lookup into
 
@@ -58,9 +67,9 @@ class GFSStorage {
                 return {
                     file: files[0],
                     stream: gfs.createReadStream({
-                                filename: files[0].filename,
-                                root: root
-                            })
+                        filename: files[0].filename,
+                        root: root
+                    })
                 };
         });
 
