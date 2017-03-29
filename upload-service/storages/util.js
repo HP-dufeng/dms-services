@@ -12,3 +12,4 @@ const rename = function (originalname) {
 module.exports = {
     rename
 };
+

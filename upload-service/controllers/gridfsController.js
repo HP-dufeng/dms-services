@@ -16,6 +16,12 @@ exports.download = (req, res, next) => {
 
     gfsStorage.download(filename)
         .then(r => {
+            if(!r){
+                const error =  new Error('File not found');
+                error.code = 404;
+                throw error;
+            }
+
             const { file, stream  } = r;
             res.set('Content-Type', file.contentType)
             /** return response */

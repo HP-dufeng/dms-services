@@ -8,6 +8,13 @@ const { rename } = require('./util');
 const root = "ctFiles";
 
 class GFSStorage {
+    constructor() {
+        if(!mongoose.connection.db)
+            throw new Error('You must be connect to mongodb first');
+
+        this.storage = this.getStorage();
+    }
+
     getStorage() {
         Grid.mongo = mongoose.mongo;
         const gfs = Grid(mongoose.connection.db);
@@ -30,9 +37,6 @@ class GFSStorage {
     }
 
     upload(req, res) {
-        this.storage = this.getStorage();
-        this.gfs = this.storage.gfs;
-
         const upload = multer({ //multer settings for single upload
             storage: this.storage
         }).single('file');
@@ -50,7 +54,7 @@ class GFSStorage {
     }
 
     download(filename) {
-        const { gfs } = this;
+        const { gfs } = this.storage;
 
         gfs.collection(root); //set collection name to lookup into
 
@@ -59,9 +63,7 @@ class GFSStorage {
             .toArray()
             .then(files => {
                 if(!files || files.length === 0){
-                    const error =  new Error('File not found');
-                    error.code = 404;
-                    throw error;
+                    return null;
                 }
 
                 return {

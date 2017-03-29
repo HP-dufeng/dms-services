@@ -16,13 +16,13 @@ app.use(bodyParser.json());
 routers(app);
 
 app.use(function (err, req, res, next) {
-    console.log(err);
     if(err.code === 'LIMIT_FILE_SIZE'){
         res.status(422).send({ error: err.message });
     } else if(err.code === 404){
         return res.status(404).send({ error: err.message });
     }
      else {
+        console.log(err);
         next();
     }
 

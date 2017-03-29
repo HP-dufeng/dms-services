@@ -16,6 +16,12 @@ exports.download = (req, res, next) => {
 
     storage.download(filename)
         .then(file => {
+            if(!file){
+                const error =  new Error('File not found');
+                error.code = 404;
+                throw error;
+            }
+
             res.set('Content-Type', file.contentType)
             /** return response */
             return res.send(file.data);
