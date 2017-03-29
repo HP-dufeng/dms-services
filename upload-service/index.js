@@ -1,14 +1,37 @@
 const express = require('express'); 
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
 
 const config = require('./config');
-const GFSStorage = require('./storages/gfsStorage');
+const GFSStorage = require('./storages/GFSStorage');
+
+const SMStorage = require('./storages/SMStorage');
+
+mongoose.connect(config.mongodb.uri);
+mongoose.Promise = global.Promise;
+
+const gfsStorage = new GFSStorage(config.mongodb.root);
+const smsStorage = new SMStorage();
 
 const app = express(); 
 
 app.use(bodyParser.json());
 
-const gfsStorage = new GFSStorage(config.mongodb.uri, config.mongodb.root);
+app.post('/small/upload', smsStorage.upload, function(req, res) {
+    const { filename } = req.file;
+    res.json({ filename });
+});
+
+app.get('/small/file/:filename', function(req, res,next){
+    const { filename } = req.params;
+    smsStorage.getFile(filename)
+        .then(file => {
+            res.set('Content-Type', file.contentType)
+            /** return response */
+            return res.send(file.data);
+        })
+        .catch(next);
+});
 
 /** API path that will upload the files */
 app.post('/upload', gfsStorage.upload, function(req, res) {

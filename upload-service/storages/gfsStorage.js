@@ -1,14 +1,12 @@
-const path = require('path');
 const multer = require('multer');
 const mongoose = require('mongoose');
 const GridFsStorage = require('multer-gridfs-storage');
 const Grid = require('gridfs-stream');
 
-mongoose.Promise = global.Promise;
+const { rename } = require('./util');
 
 class GFSStorage {
-    constructor(uri, root) {
-        this.uri = uri;
+    constructor(root) {
         this.root = root;
 
         this.storage = this.getStorage();
@@ -20,9 +18,7 @@ class GFSStorage {
     }
 
     getStorage() {
-        const { uri, root } = this;
-
-        mongoose.connect(uri);
+        const { root } = this;
 
         Grid.mongo = mongoose.mongo;
         const gfs = Grid(mongoose.connection.db);
@@ -31,9 +27,7 @@ class GFSStorage {
         const storage = GridFsStorage({
             gfs : gfs,
             filename: function (req, file, cb) {
-                const datetimestamp = Date.now();
-                const extname = path.extname(file.originalname);
-                const filename = `${file.fieldname}-${datetimestamp}${extname}`;
+                const filename = rename(file.originalname);
                 cb(null, filename);
             },
             /** With gridfs we can store aditional meta-data along with the file */

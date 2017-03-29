@@ -2,6 +2,6 @@ module.exports = {
     mongodb: {
         uri: 'mongodb://localhost:27017/dms',
         root: 'ctFiles',
-        fileSizeLimit: 10240
+        fileSizeLimit: 204800
     }
 };
