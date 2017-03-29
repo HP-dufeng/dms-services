@@ -1,4 +1,5 @@
 const path = require('path');
+const multer = require('multer');
 const mongoose = require('mongoose');
 const GridFsStorage = require('multer-gridfs-storage');
 const Grid = require('gridfs-stream');
@@ -6,12 +7,16 @@ const Grid = require('gridfs-stream');
 mongoose.Promise = global.Promise;
 
 class GFSStorage {
-    constructor(uri, collectionName) {
+    constructor(uri, root) {
         this.uri = uri;
-        this.root = collectionName;
+        this.root = root;
 
         this.storage = this.getStorage();
         this.gfs = this.storage.gfs;
+
+        this.upload = multer({ //multer settings for single upload
+            storage: this.storage
+        }).single('file');
     }
 
     getStorage() {
@@ -51,7 +56,9 @@ class GFSStorage {
             .toArray()
             .then(files => {
                 if(!files || files.length === 0){
-                    throw new Error(404);
+                    const error =  new Error('File not found');
+                    error.code = 404;
+                    throw error;
                 }
 
                 return {
@@ -60,7 +67,7 @@ class GFSStorage {
                                 filename: files[0].filename,
                                 root: root
                             })
-                }
+                };
         });
 
         return p;
